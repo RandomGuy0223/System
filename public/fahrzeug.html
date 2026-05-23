@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Fahrzeug - Status & Alarm</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .alarm-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(211, 47, 47, 0.95); display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; display: none;
+        }
+        .alarm-box { background: white; color: black; padding: 40px; border-radius: 10px; text-align: center; max-width: 80%; }
+        #current-status { font-size: 3em; font-weight: bold; margin: 20px; padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container" style="text-align: center;">
+        <h1 id="vehicleName">Lädt...</h1>
+        
+        <div id="current-status" class="status-2">2</div>
+
+        <!-- Audio Ready Button (Zwingend für Browser-Audio) -->
+        <div id="audioInitBox" class="card" style="border: 2px solid orange;">
+            <p style="color: orange;">⚠️ Browser blockiert Töne standardmäßig.</p>
+            <button onclick="initAudio()" style="background: orange; color: black; padding: 15px; width: 100%;">SYSTEM BEREIT SCHALTEN (Audio aktivieren)</button>
+        </div>
+
+        <div class="card">
+            <h3>FMS Status geben</h3>
+            <button class="fms-btn status-1" onclick="sendFMS(1)">1</button>
+            <button class="fms-btn status-2" onclick="sendFMS(2)">2</button>
+            <button class="fms-btn status-3" onclick="sendFMS(3)">3</button>
+            <button class="fms-btn status-4" onclick="sendFMS(4)">4</button>
+            <button class="fms-btn status-6" onclick="sendFMS(6)">6</button>
+        </div>
+    </div>
+
+    <!-- Alarm Overlay -->
+    <div id="alarmOverlay" class="alarm-overlay">
+        <div class="alarm-box">
+            <h1 style="color: red; font-size: 3em;">!!! ALARM !!!</h1>
+            <h2 id="alarmStichwort">FEUER 1</h2>
+            <p id="alarmOrt" style="font-size: 1.5em; font-weight: bold;"></p>
+            <p id="alarmInfo"></p>
+            <button onclick="closeAlarm()" style="padding: 20px 40px; font-size: 1.5em; background: #333;">Einsatz übernehmen (Status 3)</button>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="alarm.mp3" preload="auto"></audio>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const user = sessionStorage.getItem('lst_user');
+        
+        const alarmSound = document.getElementById('alarmSound');
+        alarmSound.loop = true;
+
+        function initAudio() {
+            // Audio-Element "anwärmen" für den Browser
+            alarmSound.play().then(() => {
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
+                document.getElementById('audioInitBox').style.display = 'none';
+                console.log("Audio-Kanal für alarm.mp3 bereit!");
+            }).catch(e => {
+                alert("Fehler beim Laden von alarm.mp3: " + e + "\nStellen Sie sicher, dass die Datei im 'public' Ordner liegt.");
+            });
+        }
+
+        if (!user || sessionStorage.getItem('lst_role') !== 'vehicle') {
+            window.location.href = 'index.html';
+        }
+
+        // Simulierter Pass für Re-Login
+        const passes = { 
+            'HLF_1': 'HLF1_Safe_XJ-927#Kilo-Delta', 
+            'HLF_2': 'HLF2_Prot_ZW-114#Echo-Sierra', 
+            'HLF_3': 'HLF_3_Sec_QM-552#Tango-Victor', 
+            'HLF_4': 'HLF_4_Guard_RB-008#Bravo-Zulu' 
+        };
+        socket.emit('login', { user, pass: passes[user] });
+
+        socket.on('vehicle_init', (data) => {
+            document.getElementById('vehicleName').innerText = data.name;
+            updateStatusDisplay(data.status);
+        });
+
+        socket.on('alarm', (data) => {
+            console.log("ALARM EMPFANGEN:", data);
+            document.getElementById('alarmStichwort').innerText = data.stichwort;
+            document.getElementById('alarmOrt').innerText = data.ort;
+            document.getElementById('alarmInfo').innerText = data.info;
+            document.getElementById('alarmOverlay').style.display = 'flex';
+            
+            // Spiele die alarm.mp3 ab
+            alarmSound.play().catch(e => console.error("Sound-Fehler:", e));
+            
+            document.title = "!!! ALARM !!!";
+        });
+
+        function sendFMS(status) {
+            socket.emit('update_status', status);
+            updateStatusDisplay(status);
+        }
+
+        function updateStatusDisplay(status) {
+            const el = document.getElementById('current-status');
+            el.innerText = status;
+            el.className = `status-${status}`;
+        }
+
+        function closeAlarm() {
+            document.getElementById('alarmOverlay').style.display = 'none';
+            document.title = "Fahrzeug - Status & Alarm";
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            sendFMS(3);
+        }
+    </script>
+</body>
+</html>

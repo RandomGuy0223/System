@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>EDP4 - Einsatzleitplatz - EDP-Entwicklungsteam</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Top Blue Header -->
+    <header class="main-header">
+        <div><strong>EDP4 - Einsatzleitplatz - EDP-Entwicklungsteam (EXPERT_SYSTEMS)</strong></div>
+        <div>* Keine Lage aktiv *</div>
+    </header>
+
+    <!-- Nav Tabs -->
+    <nav class="nav-tabs" id="navTabs">
+        <div class="nav-tab" onclick="switchTab(this, 'benutzer')">BENUTZER</div>
+        <div class="nav-tab" onclick="switchTab(this, 'start')">START</div>
+        <div class="nav-tab active" onclick="switchTab(this, 'einsatz')">EINSATZ</div>
+        <div class="nav-tab" onclick="switchTab(this, 'einsatzmittel')">EINSATZMITTEL</div>
+        <div class="nav-tab" onclick="switchTab(this, 'wachbetrieb')">WACHBETRIEB</div>
+        <div class="nav-tab" onclick="switchTab(this, 'lagefuehrung')">LAGEFÜHRUNG</div>
+    </nav>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="tool-btn" onclick="clearMask()"><span>🔄</span><span>Maske leer</span></div>
+        <div class="tool-btn" onclick="archiveEinsatz()"><span>📁</span><span>Abschließen</span></div>
+        <div class="tool-btn" onclick="alert('Funktion in Arbeit...')"><span>🖥️</span><span>Schutz auf Monitor</span></div>
+        <div class="tool-btn" onclick="alert('Karte wird geladen...')"><span>🗺️</span><span>Karte</span></div>
+        <div class="tool-btn" onclick="toggleLog()"><span>📋</span><span>Einsatz-Log</span></div>
+    </div>
+
+    <!-- TAB CONTENT: BENUTZER -->
+    <div id="content-benutzer" class="tab-content hidden" style="padding: 20px;">
+        <div class="card" style="max-width: 400px; background: white; padding: 20px; border: 1px solid #ccc;">
+            <h2>Aktueller Benutzer</h2>
+            <p><strong>Kennung:</strong> <span id="user-display"></span></p>
+            <p><strong>Rolle:</strong> Disponent</p>
+            <p><strong>Dienststelle:</strong> Leitstelle Mitte</p>
+            <hr>
+            <button onclick="logout()" style="background: #d32f2f; color: white; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold;">ABMELDEN / LOGOUT</button>
+        </div>
+    </div>
+
+    <!-- TAB CONTENT: START -->
+    <div id="content-start" class="tab-content hidden" style="padding: 20px;">
+        <div class="pane">
+            <div class="pane-header">System-Übersicht</div>
+            <div class="pane-content">
+                <h3>Willkommen im EDP4 Einsatzleitplatz</h3>
+                <p>Aktuelle Uhrzeit: <span id="clock"></span></p>
+                <p>Verbundene Fahrzeuge: <span id="vehicle-count">0</span></p>
+                <div style="background: #eef; padding: 15px; border-left: 5px solid #004a99;">
+                    <strong>System-Status:</strong> Alle Dienste laufen normal.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB CONTENT: EINSATZ (Hauptansicht) -->
+    <div id="content-einsatz" class="tab-content">
+        <div class="main-container">
+            <!-- Spalte 1: Einsatzmaske -->
+            <div class="pane">
+                <div class="pane-header">Einsatzmaske</div>
+                <div class="pane-content">
+                    <form id="alarmForm">
+                        <div class="form-row">
+                            <label>Objekt / Haus:</label>
+                            <input type="text" id="objekt" class="highlight-input" placeholder="Hochhaus Musterstadt">
+                        </div>
+                        <div class="form-row">
+                            <label>Straße / Nr.:</label>
+                            <input type="text" id="ort" class="highlight-input" required placeholder="Hauptstraße 111">
+                        </div>
+                        <div class="form-row">
+                            <label>Ort / Ortsteil:</label>
+                            <input type="text" id="ortsteil" placeholder="Musterstadt">
+                        </div>
+                        <div class="form-row">
+                            <label>Melder / Tel.:</label>
+                            <input type="text" id="melder" placeholder="Hr. Schmidt / 012345678">
+                        </div>
+                        <div class="form-row">
+                            <label>Stichwort:</label>
+                            <input type="text" id="stichwort" class="highlight-input" required placeholder="F 2 / Feuer">
+                        </div>
+                        <div class="form-row">
+                            <label>Meldungstext:</label>
+                            <textarea id="info" style="height: 60px;"></textarea>
+                        </div>
+
+                        <div style="margin-top: 15px;">
+                            <strong>Fahrzeuge zur Alarmierung auswählen:</strong>
+                            <div id="vehicleCheckboxes" style="border: 1px solid #ccc; height: 100px; overflow-y: auto; padding: 5px; margin-top: 5px;"></div>
+                        </div>
+
+                        <button type="submit" class="btn-alarm" style="margin-top: 10px;">EINSATZ ALARMIEREN (F5)</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Spalte 2: Einsatzmittel -->
+            <div class="pane">
+                <div class="pane-header">Zugewiesene Einsatzmittel</div>
+                <div class="pane-content" style="padding:0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Rufname</th>
+                                <th style="width: 40px;">S</th>
+                                <th>Zeit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicleTableBody">
+                            <!-- Wird per JS gefüllt -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Spalte 3: Maßnahmen / Log -->
+            <div class="pane" id="logPane">
+                <div class="pane-header">Rückmeldungen / Log</div>
+                <div class="pane-content" style="font-size: 11px;">
+                    <div id="einsatz-liste"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB CONTENT: EINSATZMITTEL (Detailansicht) -->
+    <div id="content-einsatzmittel" class="tab-content hidden" style="padding: 20px;">
+        <div class="pane">
+            <div class="pane-header">Detaillierte Fahrzeugübersicht</div>
+            <div class="pane-content">
+                <table class="data-table" id="fullVehicleTable">
+                    <thead>
+                        <tr>
+                            <th>Fahrzeug</th>
+                            <th>Status</th>
+                            <th>Letzte Meldung</th>
+                            <th>Standort</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fullVehicleBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB CONTENT: WACHBETRIEB -->
+    <div id="content-wachbetrieb" class="tab-content hidden" style="padding: 20px;">
+        <div class="pane">
+            <div class="pane-header">Wachbuch / Betriebstagebuch</div>
+            <div class="pane-content">
+                <p>Keine aktuellen Einträge im Wachbuch vorhanden.</p>
+                <button onclick="alert('Neuer Eintrag erstellt')">+ Eintrag hinzufügen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB CONTENT: LAGEFÜHRUNG -->
+    <div id="content-lagefuehrung" class="tab-content hidden" style="padding: 20px;">
+        <div class="pane" style="height: 500px;">
+            <div class="pane-header">Lagekarte</div>
+            <div class="pane-content" style="background: #ddd; display: flex; align-items: center; justify-content: center; height: 100%;">
+                <div style="text-align: center; color: #666;">
+                    <span style="font-size: 50px;">🗺️</span><br>
+                    <strong>Lagekarte wird geladen...</strong><br>
+                    (Simulierte Kartenansicht)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const user = sessionStorage.getItem('lst_user');
+        
+        if (!user || sessionStorage.getItem('lst_role') !== 'dispatcher') {
+            window.location.href = 'index.html';
+        }
+
+        socket.emit('login', { user, pass: 'LST-Mitte-2026!#Secure-Alpha-99' });
+
+        // Kleiner Hack, um den Sound-Context im Browser zu aktivieren
+        document.body.addEventListener('click', () => {
+            console.log("Audio-Context aktiviert");
+        }, { once: true });
+
+        socket.on('init_data', (data) => {
+            updateVehicles(data.vehicles);
+            // Bestehende Einsätze im Log anzeigen
+            data.einsaetze.forEach(e => addLogEntry(e));
+            
+            // Stats für START Tab
+            document.getElementById('user-display').innerText = user;
+            document.getElementById('vehicle-count').innerText = Object.keys(data.vehicles).filter(k => data.vehicles[k].role === 'vehicle').length;
+        });
+
+        // Uhrzeit für START Tab
+        setInterval(() => {
+            const clock = document.getElementById('clock');
+            if(clock) clock.innerText = new Date().toLocaleString();
+        }, 1000);
+
+        socket.on('vehicle_status_changed', (data) => {
+            const statusCell = document.getElementById(`status-cell-${data.id}`);
+            const timeCell = document.getElementById(`time-cell-${data.id}`);
+            if (statusCell) {
+                statusCell.innerText = data.status;
+                statusCell.className = `status-cell status-${data.status}`;
+                timeCell.innerText = new Date().toLocaleTimeString();
+            }
+        });
+
+        socket.on('new_einsatz_added', (einsatz) => {
+            addLogEntry(einsatz);
+        });
+
+        function addLogEntry(e) {
+            const list = document.getElementById('einsatz-liste');
+            const entry = document.createElement('div');
+            entry.style.borderBottom = "1px solid #eee";
+            entry.style.padding = "2px 0";
+            entry.innerHTML = `<strong>${e.time}</strong>: ${e.stichwort} (${e.ort})`;
+            list.insertBefore(entry, list.firstChild);
+        }
+
+        function updateVehicles(vehicles) {
+            const tbody = document.getElementById('vehicleTableBody');
+            const checks = document.getElementById('vehicleCheckboxes');
+            const fullBody = document.getElementById('fullVehicleBody');
+            
+            tbody.innerHTML = '';
+            checks.innerHTML = '';
+            fullBody.innerHTML = '';
+
+            for (let id in vehicles) {
+                if (vehicles[id].role === 'vehicle') {
+                    // Tabelle (Einsatz Tab)
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${vehicles[id].name}</td>
+                        <td id="status-cell-${id}" class="status-cell status-${vehicles[id].status}">${vehicles[id].status}</td>
+                        <td id="time-cell-${id}">${new Date().toLocaleTimeString()}</td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // Tabelle (Einsatzmittel Tab)
+                    const trFull = document.createElement('tr');
+                    trFull.innerHTML = `
+                        <td>${vehicles[id].name}</td>
+                        <td class="status-cell status-${vehicles[id].status}">${vehicles[id].status}</td>
+                        <td>${new Date().toLocaleTimeString()}</td>
+                        <td>Hauptwache</td>
+                    `;
+                    fullBody.appendChild(trFull);
+
+                    // Checkboxen
+                    checks.innerHTML += `<div style="margin-bottom: 3px;"><label><input type="checkbox" name="v" value="${id}"> ${vehicles[id].name}</label></div>`;
+                }
+            }
+        }
+
+        document.getElementById('alarmForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selected = Array.from(document.querySelectorAll('input[name="v"]:checked')).map(cb => cb.value);
+            
+            if (selected.length === 0) return alert('Bitte mindestens ein Fahrzeug wählen!');
+
+            const alarmData = {
+                ort: document.getElementById('ort').value,
+                stichwort: document.getElementById('stichwort').value,
+                info: document.getElementById('info').value,
+                selectedVehicles: selected
+            };
+
+            socket.emit('send_alarm', alarmData);
+            document.getElementById('alarmForm').reset();
+            alert('Alarmierung erfolgreich durchgeführt!');
+        });
+
+        // --- NEUE FUNKTIONEN FÜR BUTTONS ---
+        function switchTab(el, tabId) {
+            // Tabs aktiv setzen
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            // Content umschalten
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        function clearMask() {
+            if(confirm('Möchten Sie die Einsatzmaske wirklich leeren?')) {
+                document.getElementById('alarmForm').reset();
+            }
+        }
+
+        function archiveEinsatz() {
+            alert('Einsatz wurde archiviert und abgeschlossen.');
+        }
+
+        function toggleLog() {
+            const logPane = document.getElementById('logPane');
+            logPane.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

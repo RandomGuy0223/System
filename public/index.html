@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Leitstellen-System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-container">
+        <h1>LST Login</h1>
+        <form id="loginForm">
+            <label for="username">Kennung:</label><br>
+            <input type="text" id="username" required placeholder="z.B. LS_Sued oder HLF_20_1"><br>
+            <label for="password">Passwort:</label><br>
+            <input type="password" id="password" required placeholder="****"><br>
+            <button type="submit" style="width: 100%; margin-top: 15px;">Anmelden</button>
+        </form>
+        <p id="errorMsg" style="color: var(--primary-red); font-size: 0.9em; margin-top: 10px;"></p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const loginForm = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('errorMsg');
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (!user || !pass) {
+                errorMsg.innerText = "Bitte Kennung und Passwort eingeben.";
+                return;
+            }
+
+            console.log('Login-Versuch für:', user);
+            socket.emit('login', { user, pass });
+        });
+
+        socket.on('login_success', (data) => {
+            console.log('Login erfolgreich!');
+            sessionStorage.setItem('lst_user', data.user);
+            sessionStorage.setItem('lst_role', data.role);
+            
+            if (data.role === 'dispatcher') {
+                window.location.href = 'leitstelle.html';
+            } else {
+                window.location.href = 'fahrzeug.html';
+            }
+        });
+
+        socket.on('login_error', (msg) => {
+            errorMsg.innerText = msg;
+        });
+    </script>
+</body>
+</html>
